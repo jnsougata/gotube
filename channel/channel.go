@@ -1,9 +1,7 @@
 package channel
 
 import (
-	"io"
-	"log"
-	"net/http"
+	"github.com/gotube/utils"
 	"regexp"
 	"strings"
 )
@@ -13,31 +11,8 @@ type Channel struct {
 	root string
 }
 
-func (obj *Channel) _FetchHtml(url string) string {
-	resp, err := http.Get(url)
-	if err != nil {
-		log.Fatal(err)
-	} else if resp.StatusCode == 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return string(body)
-	} else {
-		log.Fatal("Error: " + resp.Status)
-	}
-	return ""
-}
-
 func New(url string) *Channel {
-	resp, err := http.Get(url + "/about")
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	} else if resp.StatusCode == 200 {
-		body, _ := io.ReadAll(resp.Body)
-		return &Channel{html: string(body), root: url}
-	} else {
-		log.Fatal("Error: " + resp.Status)
-		return nil
-	}
+	return &Channel{html: utils.FetchHtml(url + "/about"), root: url}
 }
 
 func (obj *Channel) Name() string {
@@ -105,22 +80,96 @@ func (obj *Channel) CreationDate() string {
 	return re.FindStringSubmatch(obj.html)[1]
 }
 
-//Playlists To-Do: fix it
 func (obj *Channel) Playlists() []string {
-	html := obj._FetchHtml(obj.root + "/pls")
+	html := utils.FetchHtml(obj.root + "/pls")
 	re := regexp.MustCompile(`,"playlistId":"(.*?)"`)
 	res := re.FindAllStringSubmatch(html, -1)
-	empty := make([]string, len(res))
-	for _, val := range res {
-		if len(val[1]) > 0 {
-			empty = append(empty, val[1])
-		}
-	}
-	return empty
+	return utils.Sanitize2D(res)
 }
 
 func (obj *Channel) IsLive() bool {
-	html := obj._FetchHtml(obj.root + "/videos?view=2&live_view=501")
+	html := utils.FetchHtml(obj.root + "/videos?view=2&live_view=501")
 	re := regexp.MustCompile(`{"text":"LIVE"}`)
 	return re.MatchString(html)
+}
+
+func (obj *Channel) Uploads() []string {
+	html := utils.FetchHtml(obj.root + "/videos?view=0&sort=dd&flow=grid")
+	re := regexp.MustCompile(`videoId":"(.*?)"`)
+	res := re.FindAllStringSubmatch(html, -1)
+	return utils.Sanitize2D(res)
+}
+
+func (obj *Channel) LatestUploaded() string {
+	html := utils.FetchHtml(obj.root + "/videos?view=0&sort=dd&flow=grid")
+	reUpChunk := regexp.MustCompile(`gridVideoRenderer":{(.*?)"navigationEndpoint`)
+	reCheckStream := regexp.MustCompile(`simpleText":"Streamed`)
+	reCheckLive := regexp.MustCompile(`default_live.`)
+	fL1 := make([][]string, 0)
+	fL2 := make([]string, 0)
+	for _, v := range reUpChunk.FindAllStringSubmatch(html, -1) {
+		if reCheckStream.MatchString(v[1]) != true {
+			fL1 = append(fL1, v)
+		}
+	}
+	for _, v := range fL1 {
+		if reCheckLive.MatchString(v[1]) != true {
+			fL2 = append(fL2, v[1])
+		}
+	}
+	targetChunk := utils.Sanitize1D(fL2)[0]
+	re := regexp.MustCompile(`videoId":"(.*?)"`)
+	return re.FindStringSubmatch(targetChunk)[1]
+}
+
+func (obj *Channel) PersistentLiveStream() string {
+	html := utils.FetchHtml(obj.root + "/videos?view=2&live_view=501")
+	lre := regexp.MustCompile(`{"text":"LIVE"}`)
+	if lre.MatchString(html) == true {
+		re := regexp.MustCompile(`videoId":"(.*?)"`)
+		res := re.FindStringSubmatch(html)
+		return res[1]
+	} else {
+		return ""
+	}
+}
+
+func (obj *Channel) LatestLiveStreamed() string {
+	html := utils.FetchHtml(obj.root + "/videos?view=0&sort=dd&flow=grid")
+	reUpChunk := regexp.MustCompile(`gridVideoRenderer":{(.*?)"navigationEndpoint`)
+	reCheckStream := regexp.MustCompile(`simpleText":"Streamed`)
+	reCheckLive := regexp.MustCompile(`default_live.`)
+	fL1 := make([][]string, 0)
+	fL2 := make([]string, 0)
+	for _, v := range reUpChunk.FindAllStringSubmatch(html, -1) {
+		if reCheckStream.MatchString(v[1]) == true {
+			fL1 = append(fL1, v)
+		}
+	}
+	for _, v := range fL1 {
+		if reCheckLive.MatchString(v[1]) != true {
+			fL2 = append(fL2, v[1])
+		}
+	}
+	targetChunk := utils.Sanitize1D(fL2)[0]
+	re := regexp.MustCompile(`videoId":"(.*?)"`)
+	return re.FindStringSubmatch(targetChunk)[1]
+}
+
+func (obj *Channel) PreviousLiveStreams() []string {
+	html := utils.FetchHtml(obj.root + "/videos?view=2&live_view=503")
+	re := regexp.MustCompile(`videoId":"(.*?)"`)
+	res := re.FindAllStringSubmatch(html, -1)
+	return utils.Sanitize2D(res)
+}
+
+func (obj *Channel) UpcomingVideos() []string {
+	html := utils.FetchHtml(obj.root + "/videos?view=2&live_view=502")
+	reCheck := regexp.MustCompile(`"title":"Upcoming live streams"`)
+	reSearch := regexp.MustCompile(`gridVideoRenderer:{"videoId":"(.*?)"`)
+	if reCheck.MatchString(html) == true {
+		return utils.Sanitize1D(reSearch.FindStringSubmatch(html))
+	} else {
+		return []string{}
+	}
 }
