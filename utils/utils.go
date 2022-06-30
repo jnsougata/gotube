@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 )
 
 func Sanitize2D(arr2D [][]string) []string {
@@ -45,4 +46,8 @@ func FetchHtml(url string) string {
 		log.Fatal("Error: " + resp.Status)
 	}
 	return ""
+}
+
+func KeywordParser(keyword string) string {
+	return strings.Replace(keyword, " ", "+", -1)
 }

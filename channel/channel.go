@@ -17,7 +17,12 @@ func New(url string) *Channel {
 
 func (obj *Channel) Name() string {
 	re := regexp.MustCompile(`channelMetadataRenderer":{"title":"(.*?)"`)
-	return re.FindStringSubmatch(obj.html)[1]
+	nameArray := re.FindStringSubmatch(obj.html)
+	if len(nameArray) > 1 {
+		return nameArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) Id() string {
@@ -37,7 +42,12 @@ func (obj *Channel) TotalViews() string {
 
 func (obj *Channel) Description() string {
 	re := regexp.MustCompile(`{"description":{"simpleText":"(.*?)"}`)
-	return re.FindStringSubmatch(obj.html)[1]
+	descArray := re.FindStringSubmatch(obj.html)
+	if len(descArray) > 1 {
+		return descArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) Subscribers() string {
@@ -57,27 +67,52 @@ func (obj *Channel) Avatar() string {
 
 func (obj *Channel) Banner() string {
 	re := regexp.MustCompile(`width":1280,"height":351},{"url":"(.*?)"`)
-	return re.FindStringSubmatch(obj.html)[1]
+	bannerArray := re.FindStringSubmatch(obj.html)
+	if len(bannerArray) > 1 {
+		return bannerArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) Connections() string {
 	re := regexp.MustCompile(`q=https%3A%2F%2F(.*?)"`)
-	return "https://" + strings.Replace(re.FindStringSubmatch(obj.html)[1], "%2F", "/", 10)
+	connArray := re.FindStringSubmatch(obj.html)
+	if len(connArray) > 1 {
+		return "https://" + strings.Replace((connArray)[1], "%2F", "/", -1)
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) Country() string {
 	re := regexp.MustCompile(`country":{"simpleText":"(.*?)"}`)
-	return re.FindStringSubmatch(obj.html)[1]
+	countryArray := re.FindStringSubmatch(obj.html)
+	if len(countryArray) > 1 {
+		return countryArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) CustomUrl() string {
 	re := regexp.MustCompile(`canonicalChannelUrl":"(.*?)"`)
-	return re.FindStringSubmatch(obj.html)[1]
+	curlArray := re.FindStringSubmatch(obj.html)
+	if len(curlArray) > 1 {
+		return curlArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) CreationDate() string {
 	re := regexp.MustCompile(`{"text":"Joined "},{"text":"(.*?)"}`)
-	return re.FindStringSubmatch(obj.html)[1]
+	crArray := re.FindStringSubmatch(obj.html)
+	if len(crArray) > 1 {
+		return crArray[1]
+	} else {
+		return ""
+	}
 }
 
 func (obj *Channel) Playlists() []string {
