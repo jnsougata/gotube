@@ -105,6 +105,7 @@ func (obj *Channel) CreationDate() string {
 	return re.FindStringSubmatch(obj.html)[1]
 }
 
+//Playlists To-Do: fix it
 func (obj *Channel) Playlists() []string {
 	html := obj._FetchHtml(obj.root + "/pls")
 	re := regexp.MustCompile(`,"playlistId":"(.*?)"`)
