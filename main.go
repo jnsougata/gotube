@@ -7,5 +7,5 @@ import (
 
 func main() {
 	ch := channel.New("https://www.youtube.com/c/livenowfox")
-	fmt.Println(ch.UpcomingVideos())
+	fmt.Println(ch.Info())
 }
