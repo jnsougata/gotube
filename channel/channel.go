@@ -1,6 +1,7 @@
 package channel
 
 import (
+	"github.com/gotube/https"
 	"github.com/gotube/utils"
 	"regexp"
 	"strings"
@@ -12,7 +13,7 @@ type Channel struct {
 }
 
 func New(url string) *Channel {
-	return &Channel{html: utils.FetchHtml(url + "/about"), url: url}
+	return &Channel{html: https.GetChannelAbout(url), url: url}
 }
 
 func (obj *Channel) Name() string {
@@ -116,33 +117,29 @@ func (obj *Channel) CreationDate() string {
 }
 
 func (obj *Channel) Playlists() []string {
-	html := utils.FetchHtml(obj.url + "/pls")
 	re := regexp.MustCompile(`,"playlistId":"(.*?)"`)
-	res := re.FindAllStringSubmatch(html, -1)
+	res := re.FindAllStringSubmatch(https.GetChannelPlaylists(obj.url), -1)
 	return utils.Sanitize2D(res)
 }
 
 func (obj *Channel) IsLive() bool {
-	html := utils.FetchHtml(obj.url + "/videos?view=2&live_view=501")
 	re := regexp.MustCompile(`{"text":"LIVE"}`)
-	return re.MatchString(html)
+	return re.MatchString(https.GetLivestreamData(obj.url))
 }
 
 func (obj *Channel) Uploads() []string {
-	html := utils.FetchHtml(obj.url + "/videos?view=0&sort=dd&flow=grid")
 	re := regexp.MustCompile(`videoId":"(.*?)"`)
-	res := re.FindAllStringSubmatch(html, -1)
+	res := re.FindAllStringSubmatch(https.GetChannelUploads(obj.url), -1)
 	return utils.Sanitize2D(res)
 }
 
 func (obj *Channel) LatestUploaded() string {
-	html := utils.FetchHtml(obj.url + "/videos?view=0&sort=dd&flow=grid")
 	reUpChunk := regexp.MustCompile(`gridVideoRenderer":{(.*?)"navigationEndpoint`)
 	reCheckStream := regexp.MustCompile(`simpleText":"Streamed`)
 	reCheckLive := regexp.MustCompile(`default_live.`)
 	fL1 := make([][]string, 0)
 	fL2 := make([]string, 0)
-	for _, v := range reUpChunk.FindAllStringSubmatch(html, -1) {
+	for _, v := range reUpChunk.FindAllStringSubmatch(https.GetChannelUploads(obj.url), -1) {
 		if reCheckStream.MatchString(v[1]) != true {
 			fL1 = append(fL1, v)
 		}
@@ -152,13 +149,13 @@ func (obj *Channel) LatestUploaded() string {
 			fL2 = append(fL2, v[1])
 		}
 	}
-	targetChunk := utils.Sanitize1D(fL2)[0]
+	targetChunk := fL2[0]
 	re := regexp.MustCompile(`videoId":"(.*?)"`)
 	return re.FindStringSubmatch(targetChunk)[1]
 }
 
 func (obj *Channel) PersistentLiveStream() string {
-	html := utils.FetchHtml(obj.url + "/videos?view=2&live_view=501")
+	html := https.GetLivestreamData(obj.url)
 	lre := regexp.MustCompile(`{"text":"LIVE"}`)
 	if lre.MatchString(html) == true {
 		re := regexp.MustCompile(`videoId":"(.*?)"`)
@@ -170,13 +167,12 @@ func (obj *Channel) PersistentLiveStream() string {
 }
 
 func (obj *Channel) LatestLiveStreamed() string {
-	html := utils.FetchHtml(obj.url + "/videos?view=0&sort=dd&flow=grid")
 	reUpChunk := regexp.MustCompile(`gridVideoRenderer":{(.*?)"navigationEndpoint`)
 	reCheckStream := regexp.MustCompile(`simpleText":"Streamed`)
 	reCheckLive := regexp.MustCompile(`default_live.`)
 	fL1 := make([][]string, 0)
 	fL2 := make([]string, 0)
-	for _, v := range reUpChunk.FindAllStringSubmatch(html, -1) {
+	for _, v := range reUpChunk.FindAllStringSubmatch(https.GetChannelUploads(obj.url), -1) {
 		if reCheckStream.MatchString(v[1]) == true {
 			fL1 = append(fL1, v)
 		}
@@ -186,20 +182,19 @@ func (obj *Channel) LatestLiveStreamed() string {
 			fL2 = append(fL2, v[1])
 		}
 	}
-	targetChunk := utils.Sanitize1D(fL2)[0]
+	targetChunk := fL2[0]
 	re := regexp.MustCompile(`videoId":"(.*?)"`)
 	return re.FindStringSubmatch(targetChunk)[1]
 }
 
 func (obj *Channel) PreviousLiveStreams() []string {
-	html := utils.FetchHtml(obj.url + "/videos?view=2&live_view=503")
 	re := regexp.MustCompile(`videoId":"(.*?)"`)
-	res := re.FindAllStringSubmatch(html, -1)
+	res := re.FindAllStringSubmatch(https.GetPastLiveStreams(obj.url), -1)
 	return utils.Sanitize2D(res)
 }
 
 func (obj *Channel) UpcomingVideos() []string {
-	html := utils.FetchHtml(obj.url + "/videos?view=2&live_view=502")
+	html := https.GetUpcomingVideos(obj.url)
 	reCheck := regexp.MustCompile(`"title":"Upcoming live streams"`)
 	reSearch := regexp.MustCompile(`gridVideoRenderer:{"videoId":"(.*?)"`)
 	if reCheck.MatchString(html) == true {
