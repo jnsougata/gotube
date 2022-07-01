@@ -6,6 +6,6 @@ import (
 )
 
 func main() {
-	ch := search.New("YouTube Shorts").Channel()
+	ch := search.New("pwedipie").Channel()
 	fmt.Println(ch.Info())
 }
